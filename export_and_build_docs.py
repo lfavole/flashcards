@@ -4,6 +4,8 @@ import re
 import shutil
 from pathlib import Path
 
+from pytz import timezone
+
 from progress import Progress
 from utils import CollectionWrapper, format_size
 
@@ -85,7 +87,8 @@ for filename, content in files.items():
 with Progress("Adding last change date"):
     mkdocs_yml = Path(__file__).parent / "mkdocs.yml"
     data = mkdocs_yml.read_text("utf-8")
-    last_change = f'copyright: "Dernière mise à jour : {dt.datetime.now()}"\n'
+    now = dt.datetime.now(dt.timezone.utc).astimezone(timezone("Europe/Paris"))
+    last_change = f'copyright: "Dernière mise à jour : {now.strftime("%d/%m/%Y %H:%M:%S")}"\n'
     if "copyright" not in data:
         data += "\n" + last_change
     else:
