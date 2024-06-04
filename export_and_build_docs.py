@@ -7,7 +7,7 @@ from pathlib import Path
 from pytz import timezone
 
 from progress import Progress
-from utils import CollectionWrapper, format_size
+from utils import CollectionWrapper, format_date, format_number, format_size
 
 
 def link(target: Path, source: Path, remove_index=False):
@@ -36,8 +36,8 @@ with Progress("Cleaning up"):
     list_file.touch(exist_ok=True)
 
 TEMPLATE = """\
-| Titre | Taille |
-| ----- | ------ |
+| Titre | Taille | Nombre de cartes | Dernière modification |
+| ----- | ------ | ---------------- | --------------------- |
 """
 
 files: dict[Path, str] = {}
@@ -50,6 +50,8 @@ for deck in wrapper.all_decks():  # pylint: disable=E1133
     with Progress(f"Exporting {deck.name} ({deck.id})"):
         output_file = wrapper.export(deck, export_dir)
     sizes[output_file] = os.path.getsize(docs_dir / output_file)
+    card_count = format_number(wrapper.card_count(deck))
+    modtime = format_date(wrapper.modtime(deck))
     parts = deck.name.split("::")
 
     # file that will contain the link to the deck
@@ -57,7 +59,10 @@ for deck in wrapper.all_decks():  # pylint: disable=E1133
     if not wrapper.has_children(deck):
         # if the deck has children, the first child will add a link
         output_url = link(output_file, filename)
-        files[filename] += f"| [{deck.name}]({output_url}) | {format_size(sizes[output_file])} |\n"
+        files[filename] += f"| [{deck.name}]({output_url}) | \
+{format_size(sizes[output_file])} | \
+{card_count} | \
+{modtime} |\n"
 
     if wrapper.has_children(deck):
         old_filename = filename  # file in which the link is added
@@ -67,7 +72,9 @@ for deck in wrapper.all_decks():  # pylint: disable=E1133
             old_filename
         ] += f"| \
 [:material-folder: {deck.name}]({link(new_filename, old_filename, remove_index=True)}) | \
-{format_size(sizes[output_file])} |\n"
+{format_size(sizes[output_file])} | \
+{card_count} | \
+{modtime}\n"
 
         files[
             new_filename

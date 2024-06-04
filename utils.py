@@ -1,4 +1,6 @@
+import datetime as dt
 import os
+import re
 import sys
 import threading
 from functools import wraps
@@ -23,6 +25,16 @@ def format_size(size):
             return f"{size:3.1f} {unit}o"
         size /= 1024
     return f"{size:.1f} Yo"
+
+
+def format_date(date: dt.date | None):
+    """Return a human formatted date."""
+    return "-" if not date else date.strftime("%d/%m/%Y %H:%M:%S")
+
+
+def format_number(number: int):
+    """Return a human formatted number."""
+    return re.sub(r"(\d\d\d)", r"\1 ", str(number)[::-1])[::-1]
 
 
 FunctionT = TypeVar("FunctionT", bound=Callable)
@@ -95,6 +107,17 @@ class CollectionWrapper:
     def has_children(self, deck: DeckNameId):
         """Return `True` if the deck has children decks."""
         return bool(run_in_thread(self.col.decks.children)(deck.id))  # type: ignore
+
+    @run_in_thread
+    def modtime(self, deck: DeckNameId):
+        ret = self.col.db.execute("select mod from cards where did = ? order by mod desc limit 1", deck.id)
+        if not ret:
+            return None
+        return dt.datetime.fromtimestamp(ret[0][0])
+
+    @run_in_thread
+    def card_count(self, deck: DeckNameId):
+        return self.col.decks.card_count(deck.id, include_subdecks=True)
 
     def export(self, deck: DeckNameId | None, output_dir):
         """Export a deck in a directory."""
