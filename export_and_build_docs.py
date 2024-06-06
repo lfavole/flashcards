@@ -51,6 +51,7 @@ for deck in sorted(wrapper.all_decks(), key=lambda deck: deck.name if deck else 
     with Progress(f"Exporting {deck.name} ({deck.id})" if deck else "Exporting all the collection"):
         output_file = wrapper.export(deck, export_dir)
     sizes[output_file] = os.path.getsize(docs_dir / output_file)
+    size = format_size(sizes[output_file])
 
     card_count = format_number(wrapper.card_count(deck))
     modtime = format_datetime(wrapper.modtime(deck))  # pylint: disable=C0103
@@ -80,7 +81,7 @@ for deck in sorted(wrapper.all_decks(), key=lambda deck: deck.name if deck else 
 
 Nombre de cartes : {card_count}
 
-[:material-download: Télécharger toutes les flashcards]({link(output_file, new_filename)})
+[:material-download: Télécharger toutes les flashcards]({link(output_file, new_filename)}) ({size})
 
 {TEMPLATE}"""
 
@@ -94,7 +95,7 @@ Nombre de cartes : {card_count}
             filename
         ] += f"| \
 [{folder_icon}{parts[-1]}]({output_url}) | \
-{format_size(sizes[output_file])} | \
+{size} | \
 {card_count} | \
 {modtime}\n"
 
