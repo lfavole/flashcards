@@ -4,19 +4,16 @@ import re
 import shutil
 from pathlib import Path
 
-from pytz import timezone
-
 from progress import Progress
-from utils import CollectionWrapper, format_date, format_number, format_size
+from utils import CollectionWrapper, format_datetime, format_number, format_size
 
 
-def link(target: Path, source: Path, remove_index=False):
+def link(target: Path, source: Path):
     """Return a link pointing to `target` that can be put in the `source` file."""
     ret = target.relative_to(
         source.parent if source.suffix == ".md" else source, walk_up=True  # type: ignore
     ).as_posix()
-    if remove_index:
-        ret = ret.removesuffix("index.md")
+    ret = ret.removesuffix("index.md")
     return ret
 
 
@@ -41,49 +38,66 @@ TEMPLATE = """\
 """
 
 files: dict[Path, str] = {}
-files[docs_dir / "index.md"] = "# Mes flashcards\n\n" + TEMPLATE
+HOMEPAGE_TITLE = "Mes flashcards"
+HOMEPAGE_CONTENT = """\
+Pour utiliser mes flashcards, vous devez auparavant installer [Anki](https://apps.ankiweb.net) puis importer le fichier.
+"""
 
 sizes: dict[Path, int] = {}
-written = []  # parent decks that have already been written
 
-for deck in wrapper.all_decks():  # pylint: disable=E1133
-    with Progress(f"Exporting {deck.name} ({deck.id})"):
+
+# sort the decks so the parent deck appears before the child deck
+for deck in sorted(wrapper.all_decks(), key=lambda deck: deck.name if deck else ""):  # pylint: disable=E1133
+    with Progress(f"Exporting {deck.name} ({deck.id})" if deck else "Exporting all the collection"):
         output_file = wrapper.export(deck, export_dir)
     sizes[output_file] = os.path.getsize(docs_dir / output_file)
+
     card_count = format_number(wrapper.card_count(deck))
-    modtime = format_date(wrapper.modtime(deck))
-    parts = deck.name.split("::")
+    modtime = format_datetime(wrapper.modtime(deck))  # pylint: disable=C0103
+    parts = deck.name.split("::") if deck else ""
 
     # file that will contain the link to the deck
-    filename = docs_dir / "/".join([*parts[:-1], "index.md"])  # pylint: disable=C0103
-    if not wrapper.has_children(deck):
-        # if the deck has children, the first child will add a link
-        output_url = link(output_file, filename)
-        files[filename] += f"| [{deck.name}]({output_url}) | \
-{format_size(sizes[output_file])} | \
-{card_count} | \
-{modtime} |\n"
+    # (page of the parent deck)
+    filename = docs_dir.joinpath(*parts[:-1], "index.md")  # pylint: disable=C0103
+    folder_icon = ""  # pylint: disable=C0103
 
-    if wrapper.has_children(deck):
-        old_filename = filename  # file in which the link is added
-        new_filename = docs_dir / "/".join([*parts, "index.md"])  # file to be linked (index page of the deck)
-
-        files[
-            old_filename
-        ] += f"| \
-[:material-folder: {deck.name}]({link(new_filename, old_filename, remove_index=True)}) | \
-{format_size(sizes[output_file])} | \
-{card_count} | \
-{modtime}\n"
-
+    if not deck or wrapper.has_children(deck):
+        # if the deck has children:
+        # - add a link to the deck page (that lists the subdecks) with a folder icon
+        # - create the deck page
+        new_filename = docs_dir.joinpath(*parts, "index.md")  # file to be linked (deck page)
+        output_url = link(new_filename, filename)
+        folder_icon = ":material-folder: "  # pylint: disable=C0103
+        # create the deck page
         files[
             new_filename
         ] = f"""\
-# {deck.name}
+# {deck.name if deck else HOMEPAGE_TITLE}
+
+{HOMEPAGE_CONTENT if not deck else ""}
+
+{"Dernière modification : " + modtime if modtime != "-" else ""}
+
+Nombre de cartes : {card_count}
 
 [:material-download: Télécharger toutes les flashcards]({link(output_file, new_filename)})
 
 {TEMPLATE}"""
+
+    else:
+        output_url = link(output_file, filename)
+
+    if deck:
+        # add a link to the deck / deck page
+        # (not for all the collection)
+        files[
+            filename
+        ] += f"| \
+[{folder_icon}{parts[-1]}]({output_url}) | \
+{format_size(sizes[output_file])} | \
+{card_count} | \
+{modtime}\n"
+
 
 for filename, content in files.items():
     with Progress(f"Writing {filename}"):
@@ -94,8 +108,8 @@ for filename, content in files.items():
 with Progress("Adding last change date"):
     mkdocs_yml = Path(__file__).parent / "mkdocs.yml"
     data = mkdocs_yml.read_text("utf-8")
-    now = dt.datetime.now(dt.timezone.utc).astimezone(timezone("Europe/Paris"))
-    last_change = f'copyright: "Dernière mise à jour : {now.strftime("%d/%m/%Y %H:%M:%S")}"\n'
+    now = dt.datetime.now(dt.timezone.utc)
+    last_change = f'copyright: "Dernière mise à jour : {format_datetime(now)}"\n'
     if "copyright" not in data:
         data += "\n" + last_change
     else:
