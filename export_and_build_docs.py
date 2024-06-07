@@ -40,7 +40,8 @@ TEMPLATE = """\
 files: dict[Path, str] = {}
 HOMEPAGE_TITLE = "Mes flashcards"
 HOMEPAGE_CONTENT = """\
-Pour utiliser mes flashcards, vous devez auparavant installer [Anki](https://apps.ankiweb.net) puis importer le fichier.
+Pour utiliser mes flashcards, vous devez auparavant
+installer [Anki](https://apps.ankiweb.net/#download){:target="_blank"} puis importer le fichier.
 """
 
 sizes: dict[Path, int] = {}
