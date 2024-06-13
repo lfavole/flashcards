@@ -10,11 +10,9 @@ from utils import CollectionWrapper, format_datetime, format_number, format_size
 
 def link(target: Path, source: Path):
     """Return a link pointing to `target` that can be put in the `source` file."""
-    ret = target.relative_to(
+    return target.relative_to(
         source.parent if source.suffix == ".md" else source, walk_up=True  # type: ignore
     ).as_posix()
-    ret = ret.removesuffix("index.md")
-    return ret
 
 
 wrapper = CollectionWrapper()
@@ -22,23 +20,32 @@ with Progress("Syncing"):
     wrapper.sync()
 
 with Progress("Cleaning up"):
-    docs_dir = Path(__file__).parent / "docs"
+    docs_dir = Path(__file__).parent / "docs/export"
     if docs_dir.exists():
         shutil.rmtree(docs_dir)
     docs_dir.mkdir(exist_ok=True)
 
-    export_dir = docs_dir
+    # remove the exported files
+    export_dir = docs_dir.parent
+    for file in export_dir.iterdir():
+        if file.suffix == ".apkg":
+            file.unlink()
 
     list_file = docs_dir / ".flashcards.md"
     list_file.touch(exist_ok=True)
 
 TEMPLATE = """\
-| Titre | Taille | Nombre de cartes | Dernière modification |
+| Titre { aria-sort="ascending" } | Taille | Nombre de cartes | Dernière modification |
 | ----- | ------ | ---------------- | --------------------- |
 """
 
 files: dict[Path, str] = {}
-HOMEPAGE_TITLE = "Mes flashcards"
+HOMEPAGE_METADATA = """\
+---
+icon: material/download
+---
+"""
+HOMEPAGE_TITLE = "Télécharger mes flashcards"
 HOMEPAGE_CONTENT = """\
 Pour utiliser mes flashcards, vous devez auparavant
 installer [Anki](https://apps.ankiweb.net/#download){:target="_blank"} puis importer le fichier.
@@ -74,15 +81,16 @@ for deck in sorted(wrapper.all_decks(), key=lambda deck: deck.name if deck else 
         files[
             new_filename
         ] = f"""\
+{HOMEPAGE_METADATA if not deck else ""}
 # {deck.name if deck else HOMEPAGE_TITLE}
 
 {HOMEPAGE_CONTENT if not deck else ""}
 
-{"Dernière modification : " + modtime if modtime != "-" else ""}
+[:material-download: Télécharger toutes les flashcards]({link(output_file, new_filename)}) ({size}) (1)
+{{ .annotate }}
 
-Nombre de cartes : {card_count}
-
-[:material-download: Télécharger toutes les flashcards]({link(output_file, new_filename)}) ({size})
+1. {"Dernière modification : " + modtime + "  \n" if modtime != "-" else ""}\
+   Nombre de cartes : {card_count}
 
 {TEMPLATE}"""
 

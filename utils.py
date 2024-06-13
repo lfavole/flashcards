@@ -77,6 +77,7 @@ collection_dir.mkdir(exist_ok=True)
 class CollectionWrapper:
     """A wrapper to use `anki.collection.Collection`."""
 
+    @run_in_thread
     def __init__(
         self,
         file=collection_dir / "collection.anki2",

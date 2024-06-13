@@ -104,7 +104,8 @@ venv.bak/
 .mypy_cache/
 
 # built documentation
-docs
+docs/export
+docs/*.apkg
 
 # collection
 collection
