@@ -40,16 +40,29 @@ TEMPLATE = """\
 """
 
 files: dict[Path, str] = {}
+
+GLOBAL_METADATA = ""
+GLOBAL_CONTENT = """\
+Pour utiliser mes flashcards, vous devez auparavant
+installer [Anki][anki]{:target="_blank"} puis importer le fichier que vous aurez téléchargé.
+
+Sur les iPhones, **l'application est payante** : vous devez donc installer
+[Anki][anki]{:target="_blank"} sur un autre appareil,
+créer un compte [AnkiWeb][ankiweb_signup]{:target="_blank"},
+l'associer à votre appareil et réviser depuis [AnkiWeb][ankiweb]{:target="_blank"}.
+
+[anki]: https://apps.ankiweb.net/#download
+[ankiweb_signup]: https://ankiweb.net/account/signup
+[ankiweb]: https://ankiweb.net
+"""
+
 HOMEPAGE_METADATA = """\
 ---
 icon: material/download
 ---
 """
 HOMEPAGE_TITLE = "Télécharger mes flashcards"
-HOMEPAGE_CONTENT = """\
-Pour utiliser mes flashcards, vous devez auparavant
-installer [Anki](https://apps.ankiweb.net/#download){:target="_blank"} puis importer le fichier.
-"""
+HOMEPAGE_CONTENT = GLOBAL_CONTENT
 
 sizes: dict[Path, int] = {}
 
@@ -81,10 +94,10 @@ for deck in sorted(wrapper.all_decks(), key=lambda deck: deck.name if deck else 
         files[
             new_filename
         ] = f"""\
-{HOMEPAGE_METADATA if not deck else ""}
+{HOMEPAGE_METADATA if not deck else GLOBAL_METADATA}
 # {deck.name if deck else HOMEPAGE_TITLE}
 
-{HOMEPAGE_CONTENT if not deck else ""}
+{HOMEPAGE_CONTENT if not deck else GLOBAL_CONTENT}
 
 [:material-download: Télécharger toutes les flashcards]({link(output_file, new_filename)}) ({size}) (1)
 {{ .annotate }}
