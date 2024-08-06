@@ -15,6 +15,7 @@ theme:
   custom_dir: overrides
 
   features:
+    - content.code.copy
     - navigation.indexes
     - navigation.instant
     - navigation.instant.progress
@@ -38,9 +39,20 @@ markdown_extensions:
   - pymdownx.emoji:
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
       emoji_index: !!python/name:material.extensions.emoji.twemoji
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+          normalize: NFD
+
+extra_css:
+  - css/overrides.css
 
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/tablesort@5/dist/tablesort.min.js
+  - javascripts/linked-tabs.js
   - javascripts/tablesort.js
 
 copyright: "Dernière mise à jour : 2024-04-07 12:35:30.606151"

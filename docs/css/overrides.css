@@ -1,0 +1,64 @@
+html {
+    scroll-behavior: smooth;
+}
+
+:is(h1, h2, h3, h4, h5, h6):target,
+:is(h1, h2, h3, h4, h5, h6):target ~ * {
+    background-color: rgba(255, 255, 0, 0.3);
+}
+:is(h1, h2, h3, h4, h5, h6):target ~ :is(h1, h2, h3, h4, h5, h6):not(:target),
+:is(h1, h2, h3, h4, h5, h6):target ~ :is(h1, h2, h3, h4, h5, h6):not(:target) ~ * {
+    background-color: unset;
+}
+
+.choices label {
+    display: block;
+    cursor: pointer;
+    min-width: 8em;
+    padding: 0.1em 0.5em;
+    border: 1px solid #e4e4e4;
+}
+.choices label:nth-child(2n) {
+    background-color: #efefef;
+}
+.choices label:has(input:checked) {
+    background-color: #dcdcdc;
+}
+.choices label:not(:last-child) {
+    border-bottom: none;
+}
+.choices input {
+    width: 0;
+    height: 0;
+    opacity: 0;
+    position: absolute;
+}
+@media screen and (min-width: 60em) {
+    .choices {
+        float: left;
+        margin: 0 1em 0 0;
+    }
+}
+
+.tabbed-set hr {
+    margin: 0.5em 0;
+    background-color: #737373;
+}
+
+p:has(.recto:checked) + .tabbed-set :is(hr, hr ~ *) {
+    display: none;
+}
+label:has(.recto), label:has(.verso) {
+    cursor: pointer;
+}
+
+p:has(.recto):has(.verso) + .tabbed-set {
+    border: 0.05rem solid var(--md-default-fg-color--lightest);
+    border-radius: 0.1rem;
+    box-shadow: 0 0 5px var(--md-default-fg-color);
+}
+p:has(.recto):has(.verso) + .tabbed-set .tabbed-block > * {
+    margin-left: 1.25em;
+    margin-right: 1.25em;
+    text-align: center;
+}
