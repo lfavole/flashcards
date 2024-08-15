@@ -3,6 +3,7 @@ import os.path
 import re
 import shutil
 from pathlib import Path
+from urllib.parse import urljoin
 
 from progress import Progress
 from utils import CollectionWrapper, format_datetime, format_number, format_size
@@ -35,9 +36,11 @@ with Progress("Cleaning up"):
     list_file.touch(exist_ok=True)
 
 TEMPLATE = """\
-| Titre { aria-sort="ascending" } | Taille | Nombre de cartes | Dernière modification |
-| ----- | ------ | ---------------- | --------------------- |
+| Titre { aria-sort="ascending" } | Aperçu | Taille | Nombre de cartes | Dernière modification |
+| ------------------------------- | ------ | ------ | ---------------- | --------------------- |
 """
+FLASHCARDS_VIEWER = "https://lfavole.github.io/flashcards-viewer/"
+BASE_URL = os.getenv("BASE_URL", "https://lfavole.github.io/flashcards/")
 
 files: dict[Path, str] = {}
 
@@ -99,7 +102,8 @@ for deck in sorted(wrapper.all_decks(), key=lambda deck: deck.name if deck else 
 
 {HOMEPAGE_CONTENT if not deck else GLOBAL_CONTENT}
 
-[:material-download: Télécharger toutes les flashcards]({link(output_file, new_filename)}) ({size}) (1)
+[:material-download: Télécharger toutes les flashcards]({link(output_file, new_filename)}) ({size}) \
+[Aperçu]({FLASHCARDS_VIEWER}#{urljoin(BASE_URL, link(output_file, new_filename))}) {{ target=\"_blank\" }} (1)
 {{ .annotate }}
 
 1. {"Dernière modification : " + modtime + "  \n" if modtime != "-" else ""}\
@@ -117,6 +121,7 @@ for deck in sorted(wrapper.all_decks(), key=lambda deck: deck.name if deck else 
             filename
         ] += f"| \
 [{folder_icon}{parts[-1]}]({output_url}) | \
+[Aperçu]({FLASHCARDS_VIEWER}#{urljoin(BASE_URL, output_url)}) {{ target=\"_blank\" }} | \
 {size} | \
 {card_count} | \
 {modtime}\n"
