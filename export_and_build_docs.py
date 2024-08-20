@@ -103,7 +103,7 @@ for deck in sorted(wrapper.all_decks(), key=lambda deck: deck.name if deck else 
 {HOMEPAGE_CONTENT if not deck else GLOBAL_CONTENT}
 
 [:material-download: Télécharger toutes les flashcards]({link(output_file, new_filename)}) ({size}) \
-[Aperçu]({FLASHCARDS_VIEWER}#{urljoin(BASE_URL, link(output_file, new_filename))}) {{ target=\"_blank\" }} (1)
+[Aperçu]({FLASHCARDS_VIEWER}#{urljoin(BASE_URL, link(output_file, docs_dir.parent))}){{ target=\"_blank\" }} (1)
 {{ .annotate }}
 
 1. {"Dernière modification : " + modtime + "  \n" if modtime != "-" else ""}\
@@ -121,7 +121,7 @@ for deck in sorted(wrapper.all_decks(), key=lambda deck: deck.name if deck else 
             filename
         ] += f"| \
 [{folder_icon}{parts[-1]}]({output_url}) | \
-[Aperçu]({FLASHCARDS_VIEWER}#{urljoin(BASE_URL, output_url)}) {{ target=\"_blank\" }} | \
+[Aperçu]({FLASHCARDS_VIEWER}#{urljoin(BASE_URL, link(output_file, docs_dir.parent))}){{ target=\"_blank\" }} | \
 {size} | \
 {card_count} | \
 {modtime}\n"
