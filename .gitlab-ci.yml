@@ -1,0 +1,14 @@
+image: python:3.12
+
+pages:
+  script:
+    - python -m pip install --upgrade pip
+    - python -m pip install -e .[docs]
+    - python export_and_build_docs.py
+    - mkdocs build -d public
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  environment: production
