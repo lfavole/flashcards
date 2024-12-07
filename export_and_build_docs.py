@@ -46,17 +46,7 @@ files: dict[Path, str] = {}
 
 GLOBAL_METADATA = ""
 GLOBAL_CONTENT = """\
-Pour utiliser mes flashcards, vous devez auparavant
-installer [Anki][anki]{:target="_blank"} puis importer le fichier que vous aurez téléchargé.
-
-Sur les iPhones, **l'application est payante** : vous devez donc installer
-[Anki][anki]{:target="_blank"} sur un autre appareil,
-créer un compte [AnkiWeb][ankiweb_signup]{:target="_blank"},
-l'associer à votre appareil et réviser depuis [AnkiWeb][ankiweb]{:target="_blank"}.
-
-[anki]: https://apps.ankiweb.net/#download
-[ankiweb_signup]: https://ankiweb.net/account/signup
-[ankiweb]: https://ankiweb.net
+[Comment utiliser ce site ?](HELP)
 """
 
 HOMEPAGE_METADATA = """\
@@ -94,15 +84,16 @@ for deck in sorted(wrapper.all_decks(), key=lambda deck: deck.name if deck else 
         output_url = link(new_filename, filename)
         folder_icon = ":material-folder: "  # pylint: disable=C0103
         # create the deck page
+        help_link = link(docs_dir.parent / "questions/start.md", new_filename)
         files[
             new_filename
         ] = f"""\
 {HOMEPAGE_METADATA if not deck else GLOBAL_METADATA}
 # {deck.name if deck else HOMEPAGE_TITLE}
 
-{HOMEPAGE_CONTENT if not deck else GLOBAL_CONTENT}
+{(HOMEPAGE_CONTENT if not deck else GLOBAL_CONTENT).replace("HELP", help_link)}
 
-[:material-download: Télécharger toutes les flashcards]({link(output_file, new_filename)}) ({size}) \
+[:material-download: Télécharger toutes les flashcards]({link(output_file, new_filename)}) ({size}) - \
 [Aperçu]({FLASHCARDS_VIEWER}#{urljoin(BASE_URL, link(output_file, docs_dir.parent))}){{ target=\"_blank\" }} (1)
 {{ .annotate }}
 
@@ -119,12 +110,12 @@ for deck in sorted(wrapper.all_decks(), key=lambda deck: deck.name if deck else 
         # (not for all the collection)
         files[
             filename
-        ] += f"| \
+        ] += f'| \
 [{folder_icon}{parts[-1]}]({output_url}) | \
-[Aperçu]({FLASHCARDS_VIEWER}#{urljoin(BASE_URL, link(output_file, docs_dir.parent))}){{ target=\"_blank\" }} | \
+[Aperçu]({FLASHCARDS_VIEWER}#{urljoin(BASE_URL, link(output_file, docs_dir.parent))}){{ target="_blank" }} | \
 {size} | \
 {card_count} | \
-{modtime}\n"
+{modtime}\n'
 
 
 for filename, content in files.items():
