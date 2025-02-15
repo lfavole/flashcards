@@ -1,11 +1,24 @@
-image: python:3.12
+variables:
+  UV_VERSION: 0.5
+  PYTHON_VERSION: 3.12
+  BASE_LAYER: bookworm-slim
+  UV_LINK_MODE: copy
 
 pages:
+  image: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-$BASE_LAYER
+  variables:
+    UV_CACHE_DIR: .uv-cache
+  cache:
+    - key:
+        files:
+          - uv.lock
+      paths:
+        - $UV_CACHE_DIR
   script:
-    - python -m pip install --upgrade pip
-    - python -m pip install -e .[docs]
-    - python export_and_build_docs.py
+    - uv sync
+    - uv run export_and_build_docs.py
     - mkdocs build -d public
+    - uv cache prune --ci
   artifacts:
     paths:
       - public

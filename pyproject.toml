@@ -8,10 +8,10 @@ version = "2024.4.6"
 description = "My own Anki flashcards"
 readme = "README.md"
 requires-python = ">=3.7"
+dependencies = ["anki", "markdown-include", "mkdocs", "mkdocs-material", "mkdocs-minify-plugin", "pytz"]
 
 	[project.optional-dependencies]
 	dev = ["black", "flake8", "isort", "pylint"]
-    docs = ["anki", "markdown-include", "mkdocs", "mkdocs-material", "mkdocs-minify-plugin", "pytz"]
 
 	[project.urls]
 	Homepage = "https://github.com/lfavole/flashcards"

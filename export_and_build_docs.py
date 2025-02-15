@@ -85,6 +85,7 @@ for deck in sorted(wrapper.all_decks(), key=lambda deck: deck.name if deck else 
         folder_icon = ":material-folder: "  # pylint: disable=C0103
         # create the deck page
         help_link = link(docs_dir.parent / "questions/start.md", new_filename)
+        NEWLINE = "\n"
         files[
             new_filename
         ] = f"""\
@@ -97,7 +98,7 @@ for deck in sorted(wrapper.all_decks(), key=lambda deck: deck.name if deck else 
 [Aperçu]({FLASHCARDS_VIEWER}#{urljoin(BASE_URL, link(output_file, docs_dir.parent))}){{ target=\"_blank\" }} (1)
 {{ .annotate }}
 
-1. {"Dernière modification : " + modtime + "  \n" if modtime != "-" else ""}\
+1. {"Dernière modification : " + modtime + NEWLINE + "  " if modtime != "-" else ""}\
    Nombre de cartes : {card_count}
 
 {TEMPLATE}"""
