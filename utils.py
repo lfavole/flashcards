@@ -2,9 +2,11 @@
 
 import datetime as dt
 import os
+import random
 import re
 import sys
 import threading
+import time
 from collections.abc import Callable
 from functools import wraps
 from pathlib import Path
@@ -12,6 +14,7 @@ from typing import TypeVar
 
 from anki.collection import Collection, DeckIdLimit, ExportAnkiPackageOptions
 from anki.decks import DeckNameId
+from anki.errors import SyncError
 from pytz import timezone
 
 
@@ -99,6 +102,7 @@ class CollectionWrapper:
 
         Raises:
             ValueError: if the email or password is not provided.
+            SyncError: if an error occurs during sync.
 
         """
         if not self.email and not self.password:
@@ -120,8 +124,22 @@ class CollectionWrapper:
         if status.required == status.NO_CHANGES:
             return
 
-        auth = self.col.sync_login(self.email, self.password, endpoint=endpoint)
-        self.col.full_upload_or_download(auth=auth, server_usn=getattr(output, "server_media_usn", None), upload=False)
+        # Retry if multiple programs are connecting to the same account in the same time
+        while True:
+            try:
+                auth = self.col.sync_login(self.email, self.password, endpoint=endpoint)
+                self.col.full_upload_or_download(
+                    auth=auth, server_usn=getattr(output, "server_media_usn", None), upload=False
+                )
+            except SyncError as err:
+                if "try again" in str(err).lower():
+                    seconds = random.randint(0, 30)  # noqa: S311
+                    print(f"{type(err).__name__}: {err}")
+                    print(f"Too many connections, retrying in {seconds} seconds...")
+                    time.sleep(seconds)
+                    continue
+                raise
+            break
 
     def all_decks(self) -> list[DeckNameId | None]:
         """Return all the available decks (only name and ID)."""
