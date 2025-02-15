@@ -3,6 +3,7 @@
 import datetime as dt
 import os.path
 import shutil
+import sys
 from pathlib import Path
 from threading import Thread
 from typing import TYPE_CHECKING
@@ -27,8 +28,9 @@ def link(target: Path, source: Path) -> Path:
 
 
 wrapper = CollectionWrapper()
-with Progress("Syncing"):
-    wrapper.sync()
+if "--no-sync" not in sys.argv:
+    with Progress("Syncing"):
+        wrapper.sync()
 
 with Progress("Cleaning up"):
     docs_dir = Path(__file__).parent / "docs/export"
