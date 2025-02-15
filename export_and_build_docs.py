@@ -2,11 +2,12 @@
 
 import datetime as dt
 import os.path
-import re
 import shutil
-import subprocess as sp  # noqa: S404
 from pathlib import Path
 from urllib.parse import urljoin
+
+import mkdocs.commands.build
+import mkdocs.config
 
 from progress import Progress
 from utils import CollectionWrapper, format_datetime, format_number, format_size
@@ -125,29 +126,21 @@ for filename, content in files.items():
         file.parent.mkdir(parents=True, exist_ok=True)
         file.write_text(content, encoding="utf-8")
 
-with Progress("Adding last change date"):
-    mkdocs_yml = Path(__file__).parent / "mkdocs.yml"
-    data = mkdocs_yml.read_text("utf-8")
-    now = dt.datetime.now(dt.UTC)
-    last_change = f'copyright: "Dernière mise à jour : {format_datetime(now)}"\n'
-    if "copyright" not in data:
-        data += "\n" + last_change
-    else:
-        data = re.sub(r"copyright: .*\n", last_change, data)
-    mkdocs_yml.write_text(data, "utf-8")
+mkdocs_config = Path(__file__).parent / "mkdocs.yml"
 
 with Progress("Building documentation"):
-    if not os.environ.get("UV"):
-        msg = "UV environment variable is not set"
-        raise ValueError(msg)
+    now = dt.datetime.now(dt.UTC)
+    last_change = f"Dernière mise à jour : {format_datetime(now)}"
 
-    sp.run(  # noqa: S603
-        [
-            os.environ.get("UV"),
-            "run",
-            "mkdocs",
-            "build",
-            *(["-d", "public"] if os.environ.get("GITLAB_CI") else []),
-        ],
-        check=True,
-    )
+    # Load the MkDocs configuration
+    config = mkdocs.config.load_config(str(mkdocs_config))
+
+    # Add the last change date
+    config["copyright"] = (config["copyright"] + "\n" if config["copyright"] else "") + last_change
+
+    # Change the output directory on GitLab
+    if os.environ.get("GITLAB_CI"):
+        config["site_dir"] = str(Path(__file__).parent / "public")
+
+    # Build the documentation
+    mkdocs.commands.build.build(config)
