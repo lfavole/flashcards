@@ -171,10 +171,15 @@ class CollectionWrapper:
             else self.col.db.scalar("select count() from cards")
         )
 
-    def export(self, deck: DeckNameId | None, output_dir: str | Path) -> Path:
-        """Export a deck in a directory. Returns the path where the deck has been exported."""
+    @staticmethod
+    def get_export_file(deck: DeckNameId | None, output_dir: str | Path) -> Path:
+        """Return the path where the deck will be been exported."""
         filename = sanitize_filename(deck.name) if deck else "all"
-        output = Path(output_dir) / f"{filename}.apkg"
+        return Path(output_dir) / f"{filename}.apkg"
+
+    def export(self, deck: DeckNameId | None, output_dir: str | Path) -> Path:
+        """Export a deck in a directory. Return the path where the deck has been exported."""
+        output = self.get_export_file(deck, output_dir)
 
         limit = DeckIdLimit(deck.id) if deck else None
         run_in_thread(self.col.export_anki_package)(

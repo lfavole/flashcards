@@ -4,10 +4,15 @@ import datetime as dt
 import os.path
 import shutil
 from pathlib import Path
+from threading import Thread
+from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
 import mkdocs.commands.build
 import mkdocs.config
+
+if TYPE_CHECKING:
+    from anki.decks import DeckNameId
 
 from progress import Progress
 from utils import CollectionWrapper, format_datetime, format_number, format_size
@@ -29,16 +34,13 @@ with Progress("Cleaning up"):
     docs_dir = Path(__file__).parent / "docs/export"
     if docs_dir.exists():
         shutil.rmtree(docs_dir)
-    docs_dir.mkdir(exist_ok=True)
+    docs_dir.mkdir()
 
     # remove the exported files
     export_dir = docs_dir.parent
     for file in export_dir.iterdir():
         if file.suffix == ".apkg":
             file.unlink()
-
-    list_file = docs_dir / ".flashcards.md"
-    list_file.touch(exist_ok=True)
 
 TEMPLATE = """\
 | Titre { aria-sort="ascending" } | Aperçu | Taille | Nombre de cartes | Dernière modification |
@@ -64,12 +66,32 @@ HOMEPAGE_CONTENT = GLOBAL_CONTENT
 
 sizes: dict[Path, int] = {}
 
+threads: list[Thread] = []
+
+
+def export_deck(deck: "DeckNameId") -> None:
+    """Export a deck and save its size."""
+    with Progress(f"Exporting {deck.name} ({deck.id})" if deck else "Exporting all the collection"):
+        wrapper.export(deck, export_dir)
+
+    output_file = wrapper.get_export_file(deck, export_dir)
+    sizes[output_file] = (docs_dir / output_file).stat().st_size
+
 
 # sort the decks so the parent deck appears before the child deck
-for deck in sorted(wrapper.all_decks(), key=lambda deck: deck.name if deck else ""):
-    with Progress(f"Exporting {deck.name} ({deck.id})" if deck else "Exporting all the collection"):
-        output_file = wrapper.export(deck, export_dir)
-    sizes[output_file] = (docs_dir / output_file).stat().st_size
+decks = sorted(wrapper.all_decks(), key=lambda deck: deck.name if deck else "")
+
+for deck in decks:  # pylint: disable=E1133
+    thread = Thread(target=export_deck, args=(deck,))
+    thread.start()
+    threads.append(thread)
+
+for thread in threads:
+    thread.join()
+
+
+for deck in decks:  # pylint: disable=E1133
+    output_file = wrapper.get_export_file(deck, export_dir)
     size = format_size(sizes[output_file])
 
     card_count = format_number(wrapper.card_count(deck))
