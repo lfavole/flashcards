@@ -17,7 +17,6 @@ pages:
   script:
     - uv sync
     - uv run export_and_build_docs.py
-    - mkdocs build -d public
     - uv cache prune --ci
   artifacts:
     paths:

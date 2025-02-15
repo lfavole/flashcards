@@ -2,6 +2,7 @@ import datetime as dt
 import os.path
 import re
 import shutil
+import subprocess as sp
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -135,3 +136,19 @@ with Progress("Adding last change date"):
     else:
         data = re.sub(r"copyright: .*\n", last_change, data)
     mkdocs_yml.write_text(data, "utf-8")
+
+with Progress("Building documentation"):
+    if not os.environ.get("UV"):
+        msg = "UV environment variable is not set"
+        raise ValueError(msg)
+
+    sp.run(
+        [
+            os.environ.get("UV"),
+            "run",
+            "mkdocs",
+            "build",
+            *(["-d", "public"] if os.environ.get("GITLAB_CI") else []),
+        ],
+        check=True,
+    )
