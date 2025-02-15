@@ -1,8 +1,10 @@
+"""Exports all the flashcards and builds the documentation with mkdocs."""
+
 import datetime as dt
 import os.path
 import re
 import shutil
-import subprocess as sp
+import subprocess as sp  # noqa: S404
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -10,10 +12,11 @@ from progress import Progress
 from utils import CollectionWrapper, format_datetime, format_number, format_size
 
 
-def link(target: Path, source: Path):
+def link(target: Path, source: Path) -> Path:
     """Return a link pointing to `target` that can be put in the `source` file."""
     return target.relative_to(
-        source.parent if source.suffix == ".md" else source, walk_up=True  # type: ignore
+        source.parent if source.suffix == ".md" else source,
+        walk_up=True,
     ).as_posix()
 
 
@@ -62,20 +65,20 @@ sizes: dict[Path, int] = {}
 
 
 # sort the decks so the parent deck appears before the child deck
-for deck in sorted(wrapper.all_decks(), key=lambda deck: deck.name if deck else ""):  # pylint: disable=E1133
+for deck in sorted(wrapper.all_decks(), key=lambda deck: deck.name if deck else ""):
     with Progress(f"Exporting {deck.name} ({deck.id})" if deck else "Exporting all the collection"):
         output_file = wrapper.export(deck, export_dir)
-    sizes[output_file] = os.path.getsize(docs_dir / output_file)
+    sizes[output_file] = (docs_dir / output_file).stat().st_size
     size = format_size(sizes[output_file])
 
     card_count = format_number(wrapper.card_count(deck))
-    modtime = format_datetime(wrapper.modtime(deck))  # pylint: disable=C0103
+    modtime = format_datetime(wrapper.modtime(deck))
     parts = deck.name.split("::") if deck else ""
 
     # file that will contain the link to the deck
     # (page of the parent deck)
-    filename = docs_dir.joinpath(*parts[:-1], "index.md")  # pylint: disable=C0103
-    folder_icon = ""  # pylint: disable=C0103
+    filename = docs_dir.joinpath(*parts[:-1], "index.md")
+    folder_icon = ""
 
     if not deck or wrapper.has_children(deck):
         # if the deck has children:
@@ -83,13 +86,11 @@ for deck in sorted(wrapper.all_decks(), key=lambda deck: deck.name if deck else 
         # - create the deck page
         new_filename = docs_dir.joinpath(*parts, "index.md")  # file to be linked (deck page)
         output_url = link(new_filename, filename)
-        folder_icon = ":material-folder: "  # pylint: disable=C0103
+        folder_icon = ":material-folder: "
         # create the deck page
         help_link = link(docs_dir.parent / "questions/start.md", new_filename)
         NEWLINE = "\n"
-        files[
-            new_filename
-        ] = f"""\
+        files[new_filename] = f"""\
 {HOMEPAGE_METADATA if not deck else GLOBAL_METADATA}
 # {deck.name if deck else HOMEPAGE_TITLE}
 
@@ -110,9 +111,7 @@ for deck in sorted(wrapper.all_decks(), key=lambda deck: deck.name if deck else 
     if deck:
         # add a link to the deck / deck page
         # (not for all the collection)
-        files[
-            filename
-        ] += f'| \
+        files[filename] += f'| \
 [{folder_icon}{parts[-1]}]({output_url}) | \
 [Aperçu]({FLASHCARDS_VIEWER}#{urljoin(BASE_URL, link(output_file, docs_dir.parent))}){{ target="_blank" }} | \
 {size} | \
@@ -129,7 +128,7 @@ for filename, content in files.items():
 with Progress("Adding last change date"):
     mkdocs_yml = Path(__file__).parent / "mkdocs.yml"
     data = mkdocs_yml.read_text("utf-8")
-    now = dt.datetime.now(dt.timezone.utc)
+    now = dt.datetime.now(dt.UTC)
     last_change = f'copyright: "Dernière mise à jour : {format_datetime(now)}"\n'
     if "copyright" not in data:
         data += "\n" + last_change
@@ -142,7 +141,7 @@ with Progress("Building documentation"):
         msg = "UV environment variable is not set"
         raise ValueError(msg)
 
-    sp.run(
+    sp.run(  # noqa: S603
         [
             os.environ.get("UV"),
             "run",
