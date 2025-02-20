@@ -58,6 +58,8 @@ jobs:
         env:
           ANKIWEB_EMAIL: ${{ secrets.ANKIWEB_EMAIL }}
           ANKIWEB_PASSWORD: ${{ secrets.ANKIWEB_PASSWORD }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
         run: uv run backup.py
 
       - name: Cache Anki collection

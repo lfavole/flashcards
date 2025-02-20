@@ -38,8 +38,7 @@ def send_email_with_attachment(  # noqa: PLR0913, PLR0917
     attachment.add_header("Content-Disposition", f"attachment; filename={attachment_path.name}")
     msg.attach(attachment)
 
-    with smtplib.SMTP(os.getenv("SMTP_SERVER", ""), int(os.getenv("SMTP_PORT", "587"))) as server:
-        server.starttls()
+    with smtplib.SMTP_SSL(os.getenv("SMTP_SERVER", ""), int(os.getenv("SMTP_PORT", "465"))) as server:
         server.login(sender_email, sender_password)
         server.send_message(msg)
 
