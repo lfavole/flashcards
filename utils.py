@@ -195,7 +195,7 @@ class CollectionWrapper:
         filename = sanitize_filename(deck.name) if deck else "all"
         return Path(output_dir) / f"{filename}.apkg"
 
-    def export(self, deck: DeckNameId | None, output_dir: str | Path) -> Path:
+    def export(self, deck: DeckNameId | None, output_dir: str | Path, full_backup: bool = False) -> Path:
         """Export a deck in a directory. Return the path where the deck has been exported."""
         output = self.get_export_file(deck, output_dir)
 
@@ -204,8 +204,8 @@ class CollectionWrapper:
             out_path=str(output.absolute()),
             limit=limit,
             options=ExportAnkiPackageOptions(
-                with_scheduling=False,
-                with_deck_configs=False,
+                with_scheduling=full_backup,
+                with_deck_configs=full_backup,
                 with_media=True,
                 legacy=True,
             ),

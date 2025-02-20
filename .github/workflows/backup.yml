@@ -1,0 +1,70 @@
+name: Backup Anki collection
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    # at 6:30 (no DST = UTC+2)
+    - cron: '30 4 * 4-10 *'
+    # same thing during DST (UTC+1)
+    - cron: '30 5 * 1-3,11-12 *'
+  workflow_dispatch:
+    inputs:
+      restoreCollection:
+        description: 'Restore collection'
+        required: false
+        type: boolean
+
+jobs:
+  export-anki:
+    runs-on: ubuntu-latest
+    env:
+      UV_CACHE_DIR: .uv-cache
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        run: curl -LsSf https://github.com/astral-sh/uv/releases/latest/download/uv-installer.sh | sh
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: pyproject.toml
+
+      - name: Cache Python dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.UV_CACHE_DIR }}
+          key: ${{ runner.os }}-uv-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Restore Anki collection
+        uses: actions/cache/restore@v4
+        if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'schedule' || inputs.restoreCollection }}
+        with:
+          path: collection
+          key: collection-${{ hashFiles('collection/**') }}
+          restore-keys: collection-
+
+      - name: Make the backup
+        env:
+          ANKIWEB_EMAIL: ${{ secrets.ANKIWEB_EMAIL }}
+          ANKIWEB_PASSWORD: ${{ secrets.ANKIWEB_PASSWORD }}
+        run: uv run backup.py
+
+      - name: Cache Anki collection
+        uses: actions/cache/save@v4
+        with:
+          path: collection
+          key: collection-${{ hashFiles('collection/**') }}
+
+      - name: Prune cache
+        run: uv cache prune --ci
