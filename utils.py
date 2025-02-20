@@ -109,24 +109,25 @@ class CollectionWrapper:
             msg = "Username and password not provided"
             raise ValueError(msg)
         endpoint = None
-        auth = self.col.sync_login(self.email, self.password, endpoint=endpoint)
-        output = self.col.sync_collection(auth, True)
-        status = self.col.sync_status(auth)
-
-        # https://github.com/ankitects/anki/blob/a515463/qt/aqt/sync.py#L93
-        if output.new_endpoint:
-            endpoint = output.new_endpoint
-
-        if output.server_message:
-            print(output.server_message, file=sys.stderr)
-            return
-
-        if status.required == status.NO_CHANGES:
-            return
 
         # Retry if multiple programs are connecting to the same account in the same time
         while True:
             try:
+                auth = self.col.sync_login(self.email, self.password, endpoint=endpoint)
+                output = self.col.sync_collection(auth, True)
+                status = self.col.sync_status(auth)
+
+                # https://github.com/ankitects/anki/blob/a515463/qt/aqt/sync.py#L93
+                if output.new_endpoint:
+                    endpoint = output.new_endpoint
+
+                if output.server_message:
+                    print(output.server_message, file=sys.stderr)
+                    return
+
+                if status.required == status.NO_CHANGES:
+                    return
+
                 auth = self.col.sync_login(self.email, self.password, endpoint=endpoint)
                 self.col.full_upload_or_download(
                     auth=auth, server_usn=getattr(output, "server_media_usn", None), upload=False
