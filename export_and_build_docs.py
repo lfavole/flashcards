@@ -1,4 +1,4 @@
-"""Exports all the flashcards and builds the documentation with mkdocs."""
+"""Export all the flashcards and build the documentation with mkdocs."""
 
 import datetime as dt
 import os.path
@@ -19,7 +19,7 @@ from progress import Progress
 from utils import CollectionWrapper, format_datetime, format_number, format_size
 
 
-def link(target: Path, source: Path) -> Path:
+def link(target: Path, source: Path) -> str:
     """Return a link pointing to `target` that can be put in the `source` file."""
     return target.relative_to(
         source.parent if source.suffix == ".md" else source,
