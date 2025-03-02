@@ -3,6 +3,7 @@
 *venv*
 collection
 docs/export
+docs/media
 docs/*.apkg
 public
 site

@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from anki.decks import DeckNameId
 
 from progress import Progress
-from utils import CollectionWrapper, format_datetime, format_number, format_size
+from utils import CollectionWrapper, collection_dir, format_datetime, format_number, format_size
 
 
 def link(target: Path, source: Path) -> str:
@@ -37,6 +37,11 @@ with Progress("Cleaning up"):
     if docs_dir.exists():
         shutil.rmtree(docs_dir)
     docs_dir.mkdir()
+
+    media_dir = Path(__file__).parent / "docs/media"
+    if media_dir.exists():
+        shutil.rmtree(media_dir)
+    media_dir.mkdir()
 
     # remove the exported files
     export_dir = docs_dir.parent
@@ -121,6 +126,8 @@ for deck in decks:  # pylint: disable=E1133
 
 {(HOMEPAGE_CONTENT if not deck else GLOBAL_CONTENT).replace("HELP", help_link)}
 
+[Fichiers média manquants ? Cliquez ici]({link(media_dir / "index.md", new_filename)})
+
 [:material-download: Télécharger toutes les flashcards]({link(output_file, new_filename)}) ({size}) - \
 [Aperçu]({FLASHCARDS_VIEWER}#{urljoin(BASE_URL, link(output_file, docs_dir.parent))}){{ target=\"_blank\" }} (1)
 {{ .annotate }}
@@ -142,6 +149,35 @@ for deck in decks:  # pylint: disable=E1133
 {size} | \
 {card_count} | \
 {modtime}\n'
+
+files[media_dir / "index.md"] = """\
+# Fichiers média
+
+Il peut vous arriver de rencontrer des erreurs "Impossible de trouver ...".
+
+Dans ce cas, téléchargez le fichier manquant sur cette page
+(clic droit / appui long → Enregistrer la cible du lien sous...)
+et déplacez-le dans le dossier suivant :
+
+- Sur Windows / macOS / Linux : <br> ouvrez Anki → *Outils* → *Vérifier les médias* → *Afficher les fichiers*
+- Sur Android :
+    - S'il existe : <br> Stockage interne → AnkiDroid → collection.media
+    - Sinon (vous pourriez avoir besoin d'un ordinateur) : <br>
+      Stockage interne / Carte SD → Android → data → com.ichi2.anki → collection.media
+
+| Nom du fichier { aria-sort="ascending" } | Taille | Dernière modification |
+| ---------------------------------------- | ------ | --------------------- |
+"""
+
+(docs_dir / "media").mkdir(parents=True, exist_ok=True)
+
+for file in (collection_dir / "collection.media").iterdir():
+    with Progress(f"Copying media file {file}"):
+        shutil.copy(file, media_dir / file.name)
+    mtime = dt.datetime.fromtimestamp(file.stat().st_mtime, tz=dt.UTC)
+    files[media_dir / "index.md"] += f"""\
+| [{file.name}]({file.name}) | {format_size(file.stat().st_size)} | {format_datetime(mtime)} |
+"""
 
 
 for filename, content in files.items():
