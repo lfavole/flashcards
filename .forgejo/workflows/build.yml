@@ -59,14 +59,21 @@ jobs:
 
       - name: Deploy to repository
         run: |
+          mkdir -p ~/.ssh
+          cat << EOF > ~/.ssh/forgejo
+          ${{ secrets.SSH_PRIVATE_KEY }}
+          EOF
+          chmod 400 ~/.ssh/forgejo
+          eval `ssh-agent -s`
+          ssh-add ~/.ssh/forgejo
           git config --global user.name "forgejo-actions-bot"
           git config --global user.email "actions@forgejo.local"
           cd site
           git init --initial-branch main
-          git remote add origin https://${{ secrets.FORGEJO_USERNAME }}:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_URL }}.git
+          echo "git@${{ secrets.FORGEJO_URL }}.git" | sed "0,/\//{s/\//:/}" | xargs git remote add origin
           git add .
           git commit -m "Deploy site"
-          git push --force origin main
+          GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git push --force origin main
 
       - name: Prune cache
         run: uv cache prune --ci
