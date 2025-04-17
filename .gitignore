@@ -7,4 +7,5 @@ docs/media
 docs/*.apkg
 public
 site
+.message_id
 uv.lock
