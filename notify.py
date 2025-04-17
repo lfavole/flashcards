@@ -97,6 +97,6 @@ if counts["new"] > 0 or counts["learn"] > 0 or counts["review"] > 0:
     )
     print(message)
     result = send_telegram_message(BOT_TOKEN, CHAT_ID, message)
-    MESSAGE_ID_FILE.write_text(result["message_id"], "utf-8")
+    MESSAGE_ID_FILE.write_text(str(result["message_id"]), "utf-8")
 else:
     print("No flashcards to review")
