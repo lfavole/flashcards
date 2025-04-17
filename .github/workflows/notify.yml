@@ -6,14 +6,18 @@ on:
   pull_request:
     branches: ["main"]
   schedule:
-    # at every hour from 7:00 to 22:00 (no DST = UTC+2)
-    - cron: '0 5-20 * 4-10 *'
+    # at every 30th minute from 7:30 to 21:30 (no DST = UTC+2)
+    - cron: '30 5-19 * 4-10 *'
     # same thing during DST (UTC+1)
-    - cron: '0 6-21 * 1-3,11-12 *'
+    - cron: '30 6-20 * 1-3,11-12 *'
   workflow_dispatch:
     inputs:
       restoreCollection:
         description: 'Restore collection'
+        required: false
+        type: boolean
+      restoreMessageID:
+        description: 'Restore message ID'
         required: false
         type: boolean
 
@@ -45,6 +49,7 @@ jobs:
 
       - name: Cache message ID
         uses: actions/cache@v4
+        if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'schedule' || inputs.restoreMessageID }}
         with:
           path: .message_id
           key: message-id-${{ github.sha }}

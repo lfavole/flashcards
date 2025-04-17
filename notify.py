@@ -3,6 +3,7 @@
 import json
 import os
 import sys
+import traceback
 from pathlib import Path
 from typing import Any
 from urllib.request import Request, urlopen
@@ -71,6 +72,8 @@ if MESSAGE_ID_FILE.exists():
     if message_id:
         try:
             delete_telegram_message(BOT_TOKEN, CHAT_ID, message_id)
+        except Exception:  # noqa: BLE001
+            traceback.print_exc()
         finally:
             MESSAGE_ID_FILE.unlink()
 
