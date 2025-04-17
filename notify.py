@@ -69,8 +69,10 @@ MESSAGE_ID_FILE = Path(__file__).parent / ".message_id"
 if MESSAGE_ID_FILE.exists():
     message_id = MESSAGE_ID_FILE.read_text("utf-8").strip()
     if message_id:
-        delete_telegram_message(BOT_TOKEN, CHAT_ID, message_id)
-        MESSAGE_ID_FILE.unlink()
+        try:
+            delete_telegram_message(BOT_TOKEN, CHAT_ID, message_id)
+        finally:
+            MESSAGE_ID_FILE.unlink()
 
 wrapper = CollectionWrapper()
 if "--no-sync" not in sys.argv:
