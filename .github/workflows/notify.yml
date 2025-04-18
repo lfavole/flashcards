@@ -47,15 +47,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-uv-
 
-      - name: Cache message ID
-        uses: actions/cache@v4
-        if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'schedule' || inputs.restoreMessageID }}
-        with:
-          path: .message_id
-          key: message-id-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-uv-
-
       - name: Install dependencies
         run: uv sync
 
@@ -67,6 +58,14 @@ jobs:
           key: collection-${{ hashFiles('collection/**') }}
           restore-keys: collection-
 
+      - name: Restore message ID
+        uses: actions/cache/restore@v4
+        if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'schedule' || inputs.restoreMessageID }}
+        with:
+          path: .message_id
+          key: message-id-${{ hashFiles('.message_id', 'collection/**') }}
+          restore-keys: message-id-
+
       - name: Check for due cards and notify
         env:
           ANKIWEB_EMAIL: ${{ secrets.ANKIWEB_EMAIL }}
@@ -74,6 +73,12 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: uv run notify.py
+
+      - name: Cache message ID
+        uses: actions/cache/save@v4
+        with:
+          path: .message_id
+          key: message-id-${{ hashFiles('.message_id', 'collection/**') }}
 
       - name: Cache Anki collection
         uses: actions/cache/save@v4

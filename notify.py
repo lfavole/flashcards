@@ -3,9 +3,9 @@
 import json
 import os
 import sys
-import traceback
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from progress import Progress
@@ -20,19 +20,29 @@ def make_request(bot_token: str, method: str, params: dict) -> Any:  # noqa: ANN
         RuntimeError: if the call to the Telegram API fails.
 
     """
-    with urlopen(
-        Request(
-            f"https://api.telegram.org/bot{bot_token}/{method}",
-            json.dumps(params).encode(),
-            {"Content-Type": "application/json"},
-            method="POST",
-        )
-    ) as f:
-        data = json.load(f)
+    error = False
+    try:
+        with urlopen(
+            Request(
+                f"https://api.telegram.org/bot{bot_token}/{method}",
+                json.dumps(params).encode(),
+                {"Content-Type": "application/json"},
+                method="POST",
+            )
+        ) as f:
+            data = json.load(f)
+    except HTTPError as e:
+        error = e
+        data = json.load(e.file)
 
-    if not data["ok"]:
+    if not data["ok"] or error:
         msg = f"Failed to call Telegram API: {data['description']}"
+        if error:
+            new_error = RuntimeError(msg)
+            new_error.data = data
+            raise new_error from error
         raise RuntimeError(msg)
+
     return data["result"]
 
 
@@ -58,8 +68,17 @@ def delete_telegram_message(bot_token: str, chat_id: str, message_id: str) -> No
         chat_id (str): ID of the Telegram chat.
         message_id (str): The ID of the message to delete.
 
+    Raises:
+        RuntimeError: if the call to the Telegram API fails and the message to delete exists.
+
     """
-    return make_request(bot_token, "deleteMessage", {"chat_id": chat_id, "message_id": message_id})
+    try:
+        return make_request(bot_token, "deleteMessage", {"chat_id": chat_id, "message_id": message_id})
+    except RuntimeError as e:
+        if "message to delete not found" in e.data.get("description", ""):
+            print("Previous message has been deleted, skipping deletion")
+        else:
+            raise
 
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
@@ -70,12 +89,9 @@ MESSAGE_ID_FILE = Path(__file__).parent / ".message_id"
 if MESSAGE_ID_FILE.exists():
     message_id = MESSAGE_ID_FILE.read_text("utf-8").strip()
     if message_id:
-        try:
-            delete_telegram_message(BOT_TOKEN, CHAT_ID, message_id)
-        except Exception:  # noqa: BLE001
-            traceback.print_exc()
-        finally:
-            MESSAGE_ID_FILE.unlink()
+        delete_telegram_message(BOT_TOKEN, CHAT_ID, message_id)
+
+MESSAGE_ID_FILE.write_text("")
 
 wrapper = CollectionWrapper()
 if "--no-sync" not in sys.argv:
