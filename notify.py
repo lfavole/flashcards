@@ -74,8 +74,8 @@ if MESSAGE_ID_FILE.exists():
             delete_telegram_message(BOT_TOKEN, CHAT_ID, message_id)
         except Exception:  # noqa: BLE001
             traceback.print_exc()
-        finally:
-            MESSAGE_ID_FILE.unlink()
+
+MESSAGE_ID_FILE.write_text("")
 
 wrapper = CollectionWrapper()
 if "--no-sync" not in sys.argv:
