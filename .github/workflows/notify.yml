@@ -63,7 +63,7 @@ jobs:
         if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'schedule' || inputs.restoreMessageID }}
         with:
           path: .message_id
-          key: message-id-${{ hashFiles('.message_id', 'collection/**') }}
+          key: message-id-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: message-id-
 
       - name: Check for due cards and notify
@@ -78,7 +78,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: .message_id
-          key: message-id-${{ hashFiles('.message_id', 'collection/**') }}
+          key: message-id-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Cache Anki collection
         uses: actions/cache/save@v4
