@@ -1,13 +1,13 @@
 [project]
 name = "flashcards"
-version = "2024.4.6"
+version = "2025.12.1"
 description = "My own Anki flashcards"
 readme = "README.md"
-requires-python = ">=3.11"
-dependencies = ["anki", "markdown-include", "mkdocs", "mkdocs-material", "mkdocs-minify-plugin", "pytz"]
+requires-python = ">=3.11,<3.14"
+dependencies = ["anki", "markdown-include ~= 0.8", "toml ~= 0.10", "zensical ~= 0.0"]
 
 	[project.optional-dependencies]
-	dev = ["ruff"]
+	dev = ["ruff ~= 0.14"]
 
 	[project.urls]
 	Homepage = "https://github.com/lfavole/flashcards"

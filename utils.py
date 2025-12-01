@@ -11,11 +11,11 @@ from collections.abc import Callable
 from functools import wraps
 from pathlib import Path
 from typing import TypeVar
+from zoneinfo import ZoneInfo
 
 from anki.collection import Collection, DeckIdLimit, ExportAnkiPackageOptions
 from anki.decks import DeckNameId
 from anki.errors import SyncError
-from pytz import timezone
 
 
 def sanitize_filename(filename: str) -> str:
@@ -36,7 +36,7 @@ def format_size(size: float) -> str:
 
 def format_datetime(date: dt.datetime | None) -> str:
     """Return a human formatted date and time."""
-    return "-" if not date else date.astimezone(timezone("Europe/Paris")).strftime("%d/%m/%Y %H:%M:%S")
+    return "-" if not date else date.astimezone(ZoneInfo("Europe/Paris")).strftime("%d/%m/%Y %H:%M:%S")
 
 
 def format_number(number: int) -> str:
@@ -106,7 +106,7 @@ class CollectionWrapper:
 
         """
         if not self.email and not self.password:
-            msg = "Username and password not provided"
+            msg = "Email and password not provided"
             raise ValueError(msg)
         endpoint = None
 

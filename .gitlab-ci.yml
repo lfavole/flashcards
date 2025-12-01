@@ -18,6 +18,7 @@ pages:
     - uv sync
     - uv run export_and_build_docs.py
     - uv cache prune --ci
+  publish: site
   artifacts:
     paths:
       - public

@@ -1,16 +1,16 @@
-"""Export all the flashcards and build the documentation with mkdocs."""
+"""Export all the flashcards and build the documentation with Zensical."""
 
 import datetime as dt
-import os.path
+import os
 import shutil
+import subprocess as sp  # noqa: S404
 import sys
 from pathlib import Path
 from threading import Thread
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
-import mkdocs.commands.build
-import mkdocs.config
+import toml
 
 if TYPE_CHECKING:
     from anki.decks import DeckNameId
@@ -151,6 +151,9 @@ for deck in decks:  # pylint: disable=E1133
 {modtime}\n'
 
 files[media_dir / "index.md"] = """\
+---
+icon: material/image-multiple
+---
 # Fichiers média
 
 Il peut vous arriver de rencontrer des erreurs "Impossible de trouver ...".
@@ -186,21 +189,22 @@ for filename, content in files.items():
         file.parent.mkdir(parents=True, exist_ok=True)
         file.write_text(content, encoding="utf-8")
 
-mkdocs_config = Path(__file__).parent / "mkdocs.yml"
+zensical_config = Path(__file__).parent / "zensical.toml"
 
 with Progress("Building documentation"):
     now = dt.datetime.now(dt.UTC)
     last_change = f"Dernière mise à jour : {format_datetime(now)}"
 
-    # Load the MkDocs configuration
-    config = mkdocs.config.load_config(str(mkdocs_config))
+    # Load the Zensical configuration
+    with zensical_config.open() as f:
+        config = toml.load(f)
 
     # Add the last change date
-    config["copyright"] = (config["copyright"] + "\n" if config["copyright"] else "") + last_change
+    config["project"]["copyright"] = (config["project"].get("copyright", "") + "\n" + last_change).strip()
 
-    # Change the output directory on GitLab
-    if os.environ.get("GITLAB_CI"):
-        config["site_dir"] = str(Path(__file__).parent / "public")
+    # Save the Zensical configuration
+    with zensical_config.open("w") as f:
+        toml.dump(config, f)
 
     # Build the documentation
-    mkdocs.commands.build.build(config)
+    sp.run(["uvx", "zensical", "build", "--clean"], check=True)  # noqa: S607
