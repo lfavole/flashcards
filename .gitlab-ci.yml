@@ -1,10 +1,14 @@
 variables:
-  UV_VERSION: 0.5
-  PYTHON_VERSION: 3.12
+  UV_VERSION: 0.9
+  PYTHON_VERSION: 3.13
   BASE_LAYER: bookworm-slim
   UV_LINK_MODE: copy
 
+stages:
+  - build
+
 pages:
+  stage: build
   image: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-$BASE_LAYER
   variables:
     UV_CACHE_DIR: .uv-cache
@@ -21,7 +25,7 @@ pages:
   publish: site
   artifacts:
     paths:
-      - public
+      - site
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   environment: production

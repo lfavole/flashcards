@@ -53,8 +53,7 @@ TEMPLATE = """\
 | Titre { aria-sort="ascending" } | Aperçu | Taille | Nombre de cartes | Dernière modification |
 | ------------------------------- | ------ | ------ | ---------------- | --------------------- |
 """
-FLASHCARDS_VIEWER = "https://lfavole.github.io/flashcards-viewer/"
-BASE_URL = os.getenv("BASE_URL", "https://lfavole.github.io/flashcards/")
+FLASHCARDS_VIEWER_URL = "https://lfavole.github.io/flashcards-viewer/"
 
 files: dict[Path, str] = {}
 
@@ -70,6 +69,14 @@ icon: material/download
 """
 HOMEPAGE_TITLE = "Télécharger mes flashcards"
 HOMEPAGE_CONTENT = GLOBAL_CONTENT
+
+zensical_config = Path(__file__).parent / "zensical.toml"
+
+# Load the Zensical configuration
+with zensical_config.open() as f:
+    config = toml.load(f)
+
+SITE_URL = os.getenv("SITE_URL", config["project"]["site_url"])
 
 sizes: dict[Path, int] = {}
 
@@ -129,7 +136,7 @@ for deck in decks:  # pylint: disable=E1133
 [Fichiers média manquants ? Cliquez ici]({link(media_dir / "index.md", new_filename)})
 
 [:material-download: Télécharger toutes les flashcards]({link(output_file, new_filename)}) ({size}) - \
-[Aperçu]({FLASHCARDS_VIEWER}#{urljoin(BASE_URL, link(output_file, docs_dir.parent))}){{ target=\"_blank\" }} (1)
+[Aperçu]({FLASHCARDS_VIEWER_URL}#{urljoin(SITE_URL, link(output_file, docs_dir.parent))}){{ target=\"_blank\" }} (1)
 {{ .annotate }}
 
 1. {"Dernière modification : " + modtime + NEWLINE + "  " if modtime != "-" else ""}\
@@ -145,7 +152,7 @@ for deck in decks:  # pylint: disable=E1133
         # (not for all the collection)
         files[filename] += f'| \
 [{folder_icon}{parts[-1]}]({output_url}) | \
-[Aperçu]({FLASHCARDS_VIEWER}#{urljoin(BASE_URL, link(output_file, docs_dir.parent))}){{ target="_blank" }} | \
+[Aperçu]({FLASHCARDS_VIEWER_URL}#{urljoin(SITE_URL, link(output_file, docs_dir.parent))}){{ target="_blank" }} | \
 {size} | \
 {card_count} | \
 {modtime}\n'
@@ -189,15 +196,12 @@ for filename, content in files.items():
         file.parent.mkdir(parents=True, exist_ok=True)
         file.write_text(content, encoding="utf-8")
 
-zensical_config = Path(__file__).parent / "zensical.toml"
-
 with Progress("Building documentation"):
     now = dt.datetime.now(dt.UTC)
     last_change = f"Dernière mise à jour : {format_datetime(now)}"
 
-    # Load the Zensical configuration
-    with zensical_config.open() as f:
-        config = toml.load(f)
+    # Update the site URL
+    config["project"]["site_url"] = SITE_URL
 
     # Add the last change date
     config["project"]["copyright"] = (config["project"].get("copyright", "") + "\n" + last_change).strip()

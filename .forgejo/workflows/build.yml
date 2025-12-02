@@ -55,6 +55,7 @@ jobs:
         env:
           ANKIWEB_EMAIL: ${{ secrets.ANKIWEB_EMAIL }}
           ANKIWEB_PASSWORD: ${{ secrets.ANKIWEB_PASSWORD }}
+          SITE_URL: ${{ secrets.SITE_URL }}
         run: uv run export_and_build_docs.py
 
       - name: Deploy to repository
