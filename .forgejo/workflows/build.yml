@@ -58,23 +58,104 @@ jobs:
           SITE_URL: ${{ secrets.SITE_URL }}
         run: uv run export_and_build_docs.py
 
-      - name: Deploy to repository
+      - name: Prune large files in `site/` to fit under 128MB
         run: |
-          mkdir -p ~/.ssh
-          cat << EOF > ~/.ssh/forgejo
-          ${{ secrets.SSH_PRIVATE_KEY }}
-          EOF
-          chmod 400 ~/.ssh/forgejo
-          eval `ssh-agent -s`
-          ssh-add ~/.ssh/forgejo
-          git config --global user.name "forgejo-actions-bot"
-          git config --global user.email "actions@forgejo.local"
-          cd site
-          git init --initial-branch main
-          echo "git@${{ secrets.FORGEJO_URL }}.git" | sed "0,/\//{s/\//:/}" | xargs git remote add origin
-          git add .
-          git commit -m "Deploy site"
-          GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git push --force origin main
+          set -euo pipefail
+          TARGET=site
+          MAX_BYTES=$((128 * 1024 * 1024))
+
+          if [ ! -d "$TARGET" ]; then
+            echo "No $TARGET directory, skipping size prune."
+            exit 0
+          fi
+
+          total() {
+            du -sb "$TARGET" 2>/dev/null | cut -f1 || echo 0
+          }
+
+          echo "Initial site size: $(total) bytes"
+
+          while [ $(total) -gt "$MAX_BYTES" ]; do
+            # find largest regular file
+            entry=$(find "$TARGET" -type f -printf "%s %p\n" 2>/dev/null | sort -rn | head -n1 || true)
+            if [ -z "$entry" ]; then
+              echo "No more files to remove, exiting loop."
+              break
+            fi
+            size=$(printf "%s" "$entry" | awk '{print $1}')
+            path=$(printf "%s" "$entry" | cut -d' ' -f2-)
+
+
+            echo "Removing $path ($size bytes) to reduce site size..."
+
+            # Replace the removed file with a simple HTML page at the same path
+            dir=$(dirname "$path")
+            mkdir -p "$dir"
+
+            # relative path after 'site/' for the public fallback link
+            rel=${path#"$TARGET/"}
+
+            # human-readable size (French-like units)
+            hr_size=$(python3 - "$size" <<PY
+          import sys
+          n=int(sys.argv[1])
+          units=['octets','Ko','Mo','Go','To']
+          i=0
+          while n>=1024 and i<len(units)-1:
+              n=n/1024.0
+              i+=1
+          if i==0:
+              print(f"{int(n)} {units[i]}")
+          else:
+              print(f"{n:.1f} {units[i]}")
+          PY
+            )
+
+            now=$(date --utc +"%Y-%m-%d %H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%d %H:%M:%SZ")
+
+            cat > "$path" <<HTML
+          <!doctype html>
+          <html lang="fr">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width,initial-scale=1">
+              <title>Fichier retiré : $(basename "$path")</title>
+              <style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;padding:2rem;color:#222}a{color:#1a73e8}</style>
+            </head>
+            <body>
+              <h1>Fichier retiré automatiquement</h1>
+              <p>Le fichier <strong>$(basename "$path")</strong> a été supprimé du site pour réduire la taille totale du dossier <code>site/</code>.</p>
+              <ul>
+                <li>Chemin d'origine : <code>$rel</code></li>
+                <li>Taille originale : $hr_size</li>
+                <li>Date : $now (UTC)</li>
+              </ul>
+              <p>Si vous avez besoin d'une copie de ce fichier, essayez le miroir public :
+                <a href="https://lfavole.github.io/flashcards/$rel">https://lfavole.github.io/flashcards/$rel</a>
+              </p>
+              <p>Contactez le mainteneur du dépôt pour obtenir le fichier si nécessaire.</p>
+            </body>
+          </html>
+          HTML
+
+            # Ensure the replacement is a regular HTML file
+            chmod 644 "$path" || true
+
+            echo "Removed and replaced $path with HTML. New site size: $(total) bytes"
+
+            # safety: break if nothing changes
+            # loop continues until total <= MAX_BYTES
+          done
+
+          echo "Final site size: $(total) bytes (limit ${MAX_BYTES} bytes)"
+
+      - name: Deploy to git-pages
+        if: ${{ forge.ref == 'refs/heads/main' }}
+        uses: https://codeberg.org/git-pages/action@v2
+        with:
+          site: "https://${{ forge.repository_owner }}.codeberg.page/flashcards/"
+          token: ${{ forge.token }}
+          source: site/
 
       - name: Prune cache
         run: uv cache prune --ci
